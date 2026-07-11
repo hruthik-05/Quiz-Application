@@ -19,7 +19,7 @@ import com.projectquiz.demo.models.QuestionDto;
 import com.projectquiz.demo.services.QuestionService;
 @CrossOrigin(origins = "*")
 @RestController
-@RequestMapping("/question")
+@RequestMapping("/api/question")
 public class QuestionController{
     @Autowired
     QuestionService qService;
@@ -51,7 +51,7 @@ public class QuestionController{
     public Question getQuestionById(@PathVariable String id){
         return qService.getQuestionById(id);
     }
-    @GetMapping("/getQuestionsByListOfIds")
+    @PostMapping("/getQuestionsByListOfIds")
     public List<Question> getQuestionsByListOfIds(@RequestBody List<String> ids){
         return qService.getQuestionsByListOfIds(ids);
     }

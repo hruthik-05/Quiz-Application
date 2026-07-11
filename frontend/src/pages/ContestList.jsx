@@ -44,11 +44,12 @@ export default function ContestList() {
                 state: {
                     result: {
                         score: attempt.score,
-                        totalQuestions: Object.keys(attempt.responses).length, 
+                        totalQuestions: Object.keys(attempt.responses || {}).length, 
                         correct: null, 
                         classification: "Contest Result"
                     },
-                    mode: "CONTEST"
+                    mode: "CONTEST",
+                    attempt: attempt
                 }
             });
             return;

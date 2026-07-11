@@ -37,7 +37,9 @@ export default function ContestPlayer() {
 
                     },
                     mode: "CONTEST",
-                    total: questions.length
+                    total: questions.length,
+                    attempt: res.data,
+                    questions: questions
                 }
             });
         } catch (err) {

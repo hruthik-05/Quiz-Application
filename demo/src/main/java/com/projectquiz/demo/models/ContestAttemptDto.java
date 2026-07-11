@@ -7,6 +7,7 @@ import java.util.Map;
 public class ContestAttemptDto {
     private String id;
     private String contestId;
+    private String contestTitle;
     private String userId; 
     private String username; 
     private String email; 

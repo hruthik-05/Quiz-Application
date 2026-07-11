@@ -59,7 +59,7 @@ export default function Register() {
                             required
                         />
                     </div>
-                    <div>
+                    {/* <div>
                         <label className="block text-sm font-medium mb-1">Role</label>
                         <select
                             className="input-field"
@@ -69,7 +69,7 @@ export default function Register() {
                             <option value="user">Student</option>
                             <option value="admin">Admin</option>
                         </select>
-                    </div>
+                    </div> */}
                     <button type="submit" className="btn-primary w-full">
                         Register
                     </button>

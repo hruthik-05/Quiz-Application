@@ -1,6 +1,10 @@
 # ProjectQuiz - Advanced Quiz Application
 
+<<<<<<< HEAD
 
+=======
+![ProjectQuiz Banner](https://via.placeholder.com/1200x300?text=ProjectQuiz+Application)
+>>>>>>> c083552 (Updated contest DTO and fixed imports and made changes in the result page)
 
 ## 🚀 Overview
 **ProjectQuiz** is a comprehensive, full-stack web application designed to facilitate online assessments, coding contests, and skill evaluations. It features a robust **Spring Boot** backend and a modern **React** frontend, offering a seamless experience for both administrators and participants.

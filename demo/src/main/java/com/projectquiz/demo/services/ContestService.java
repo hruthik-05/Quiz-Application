@@ -3,12 +3,14 @@ package com.projectquiz.demo.services;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.projectquiz.demo.models.Contest;
 import com.projectquiz.demo.models.ContestAttempt;
+import com.projectquiz.demo.models.ContestAttemptDto;
 import com.projectquiz.demo.models.Question;
 import com.projectquiz.demo.models.User;
 import com.projectquiz.demo.repositories.ContestAttemptRepository;
@@ -93,9 +95,8 @@ public class ContestService {
             String questionId = entry.getKey();
             String userAnswer = entry.getValue();
 
-            Optional<Question> qOpt = questionRepository.findById(questionId);
-            if (qOpt.isPresent()) {
-                Question q = qOpt.get();
+            Question q = questionRepository.findById(questionId).orElse(null);
+            if (q != null) {
                 if (q.getAnswer().trim().equalsIgnoreCase(userAnswer.trim())) {
                     score += 1.0; 
                     correct++;
@@ -123,9 +124,8 @@ public class ContestService {
         ContestAttempt savedAttempt = attemptRepository.save(attempt);
 
 
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
+        User user = userRepository.findById(userId).orElse(null);
+        if (user != null) {
             if (user.getEmail() != null && !user.getEmail().isEmpty()) {
                 String emailBody = String.format(
                     "Hi %s,\n\nYou have completed the contest: %s.\n\nScore: %.2f\nCorrect: %d\nWrong: %d\n\nKeep improving!",
@@ -137,16 +137,19 @@ public class ContestService {
 
         return savedAttempt;
     }
-    public List<com.projectquiz.demo.models.ContestAttemptDto> getAttemptsForContest(String contestId) {
+    public List<ContestAttemptDto> getAttemptsForContest(String contestId) {
         List<ContestAttempt> attempts = attemptRepository.findByContestId(contestId);
         List<String> userIds = attempts.stream().map(ContestAttempt::getUserId).distinct().toList();
         List<User> users = (List<User>) userRepository.findAllById(userIds);
-        Map<String, User> userMap = users.stream().collect(java.util.stream.Collectors.toMap(User::getId, u -> u));
+        Map<String, User> userMap = users.stream().collect(Collectors.toMap(User::getId, u -> u));
+        Contest contest = getContestById(contestId);
+        String contestTitle = contest != null ? contest.getTitle() : "Unknown Contest";
 
         return attempts.stream().map(a -> {
-            com.projectquiz.demo.models.ContestAttemptDto dto = new com.projectquiz.demo.models.ContestAttemptDto();
+            ContestAttemptDto dto = new ContestAttemptDto();
             dto.setId(a.getId());
             dto.setContestId(a.getContestId());
+            dto.setContestTitle(contestTitle);
             dto.setUserId(a.getUserId());
             dto.setScore(a.getScore());
             dto.setTimeTaken(a.getTimeTaken());

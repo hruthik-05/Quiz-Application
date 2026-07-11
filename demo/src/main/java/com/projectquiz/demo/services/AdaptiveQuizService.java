@@ -3,7 +3,6 @@ package com.projectquiz.demo.services;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,11 +25,11 @@ public class AdaptiveQuizService {
 
     public List<QuestionDto> generateAdaptiveQuiz(String userId, String subject, int numberOfQuestions) {
 
-        Optional<UserPerformanceStats> statsOpt = statsRepository.findByUserId(userId);
+        UserPerformanceStats stats = statsRepository.findByUserId(userId).orElse(null);
         
         double currentAccuracy = 0.0;
-        if (statsOpt.isPresent() && statsOpt.get().getSubjectAccuracy() != null) {
-            currentAccuracy = statsOpt.get().getSubjectAccuracy().getOrDefault(subject, 0.0); 
+        if (stats != null && stats.getSubjectAccuracy() != null) {
+            currentAccuracy = stats.getSubjectAccuracy().getOrDefault(subject, 0.0); 
         } else {
 
             currentAccuracy = 50.0; 

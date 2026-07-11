@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.projectquiz.demo.models.Contest;
 import com.projectquiz.demo.models.ContestAttempt;
+import com.projectquiz.demo.models.ContestAttemptDto;
+import com.projectquiz.demo.models.Question;
 import com.projectquiz.demo.services.ContestService;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -43,7 +45,7 @@ public class ContestController {
     }
     
     @GetMapping("/{id}/questions")
-    public List<com.projectquiz.demo.models.Question> getContestQuestions(@PathVariable String id) {
+    public List<Question> getContestQuestions(@PathVariable String id) {
         return contestService.getQuestionsForContest(id);
     }
 
@@ -65,7 +67,7 @@ public class ContestController {
 
     @GetMapping("/{id}/attempts")
     @PreAuthorize("hasRole('ADMIN')")
-    public List<com.projectquiz.demo.models.ContestAttemptDto> getContestAttempts(@PathVariable String id) {
+    public List<ContestAttemptDto> getContestAttempts(@PathVariable String id) {
         return contestService.getAttemptsForContest(id);
     }
 

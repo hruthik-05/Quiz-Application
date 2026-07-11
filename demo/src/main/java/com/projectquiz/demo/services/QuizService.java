@@ -7,6 +7,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.projectquiz.demo.models.Difficulty;
 import com.projectquiz.demo.models.Question;
 import com.projectquiz.demo.models.QuestionDto;
 @Service 
@@ -46,7 +47,7 @@ public class QuizService {
         } else {
 
             try {
-                com.projectquiz.demo.models.Difficulty diffEnum = com.projectquiz.demo.models.Difficulty.valueOf(difficulty.toUpperCase());
+                Difficulty diffEnum = Difficulty.valueOf(difficulty.toUpperCase());
                 if (subject.equalsIgnoreCase("ALL")) {
                     pool = qService.getQuestionsByDifficulty(diffEnum);
                 } else {

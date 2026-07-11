@@ -3,6 +3,7 @@ package com.projectquiz.demo.controllers;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,13 +12,16 @@ import org.springframework.web.bind.annotation.RestController;
 import com.projectquiz.demo.models.QuestionDto;
 import com.projectquiz.demo.models.UserResponse;
 import com.projectquiz.demo.models.ResultDto;
+import com.projectquiz.demo.models.User;
+import com.projectquiz.demo.repositories.UserRepository;
 import com.projectquiz.demo.services.AdaptiveQuizService;
+import com.projectquiz.demo.services.EmailService;
 import com.projectquiz.demo.services.EvaluationService;
 import com.projectquiz.demo.services.QuizService;
 
 @RestController
 @RequestMapping("/api/quiz")
-@org.springframework.web.bind.annotation.CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(origins = "*", maxAge = 3600)
 public class QuizController {
     @Autowired
     QuizService qService;
@@ -26,9 +30,9 @@ public class QuizController {
     @Autowired
     AdaptiveQuizService adaptiveService;
     @Autowired
-    com.projectquiz.demo.services.EmailService emailService;
+    EmailService emailService;
     @Autowired
-    com.projectquiz.demo.repositories.UserRepository userRepository;
+    UserRepository userRepository;
 
     @RequestMapping("/create/{numberOfQuestions}")
     public List<QuestionDto> createQuiz(@PathVariable int numberOfQuestions){
@@ -55,7 +59,7 @@ public class QuizController {
 
         try {
             if (userResponse.getUserId() != null) {
-                com.projectquiz.demo.models.User user = userRepository.findById(userResponse.getUserId()).orElse(null);
+                User user = userRepository.findById(userResponse.getUserId()).orElse(null);
                 if (user != null && user.getEmail() != null && !user.getEmail().isEmpty()) {
                     String subject = "Quiz Result: " + (userResponse.getSubject() != null ? userResponse.getSubject() : "Practice Quiz");
                     String body = String.format("Hi %s,\n\nYou scored %d points in your quiz.\n\nKeep learning!", 

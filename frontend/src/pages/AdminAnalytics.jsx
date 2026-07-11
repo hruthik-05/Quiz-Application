@@ -67,10 +67,10 @@ export default function AdminAnalytics() {
 
     const accuracies = userStats.map(u => {
         if (!u.subjectAccuracy) return 0;
-        const vals = Object.values(u.subjectAccuracy);
+        const vals = Object.values(u.subjectAccuracy);//here we are extracting the accuracies 
         if (vals.length === 0) return 0;
-        return vals.reduce((a, b) => a + b, 0) / vals.length;
-    }).filter(a => a > 0);
+        return vals.reduce((a, b) => a + b, 0) / vals.length;  //calculating the average 
+    }).filter(a => a > 0);//removes the zeroes in the accuracy 
 
 
     let accBins = { '90+': 0, '70-90': 0, '50-70': 0, '<50': 0 };
@@ -161,17 +161,23 @@ export default function AdminAnalytics() {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>
-                                <th className="p-3">Contest ID</th>
-                                <th className="p-3">User ID</th>
+                                <th className="p-3">Contest</th>
+                                <th className="p-3">Student</th>
                                 <th className="p-3">Score</th>
                                 <th className="p-3">Date</th>
                             </tr>
                         </thead>
                         <tbody>
                             {contestAttempts.slice(-10).reverse().map(a => (
-                                <tr key={a.id} className="border-b border-slate-50">
-                                    <td className="p-3 font-mono text-xs">{a.contestId}</td>
-                                    <td className="p-3">{a.userId}</td>
+                                <tr key={a.id} className="border-b border-slate-50 hover:bg-slate-50">
+                                    <td className="p-3 font-medium text-slate-900">
+                                        {a.contestTitle || a.contestId}
+                                        {a.contestTitle && <span className="text-xs text-slate-400 font-mono ml-2 block sm:inline">({a.contestId})</span>}
+                                    </td>
+                                    <td className="p-3 font-medium text-slate-900">
+                                        {a.username || a.userId}
+                                        <span className="text-xs text-slate-400 ml-2 block sm:inline">({a.userId})</span>
+                                    </td>
                                     <td className="p-3 font-bold text-indigo-600">{a.score}</td>
                                     <td className="p-3 text-slate-500">{new Date(a.submittedAt).toLocaleDateString()}</td>
                                 </tr>

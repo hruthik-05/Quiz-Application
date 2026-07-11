@@ -76,7 +76,14 @@ export default function QuizPlayer() {
             };
 
             const res = await api.post('/quiz/submit', submitPayload);
-            navigate('/quiz/result', { state: { result: res.data, total: questions.length } });
+            navigate('/quiz/result', { 
+                state: { 
+                    result: res.data, 
+                    total: questions.length, 
+                    mode: "PRACTICE", 
+                    responses: answers 
+                } 
+            });
         } catch (err) {
             console.error("Submit failed", err);
             alert("Submission failed: " + (err.response?.data?.message || err.message));
