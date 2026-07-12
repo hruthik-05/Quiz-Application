@@ -36,19 +36,26 @@ public class ContestService {
     @Autowired
     EmailService emailService;
 
+    @Autowired
+    UserService userService;
+
+    @org.springframework.cache.annotation.CacheEvict(value = {"contests", "contests_all", "contests_active"}, allEntries = true)
     public Contest createContest(Contest contest) {
 
         return contestRepository.save(contest);
     }
 
+    @org.springframework.cache.annotation.Cacheable(value = "contests_all")
     public List<Contest> getAllContests() {
         return contestRepository.findAll();
     }
     
+    @org.springframework.cache.annotation.Cacheable(value = "contests_active")
     public List<Contest> getActiveContests() {
         return contestRepository.findByIsActiveTrue();
     }
 
+    @org.springframework.cache.annotation.Cacheable(value = "contests", key = "#id")
     public Contest getContestById(String id) {
         return contestRepository.findById(id).orElse(null);
     }
@@ -124,7 +131,7 @@ public class ContestService {
         ContestAttempt savedAttempt = attemptRepository.save(attempt);
 
 
-        User user = userRepository.findById(userId).orElse(null);
+        User user = userService.getUserById(userId);
         if (user != null) {
             if (user.getEmail() != null && !user.getEmail().isEmpty()) {
                 String emailBody = String.format(

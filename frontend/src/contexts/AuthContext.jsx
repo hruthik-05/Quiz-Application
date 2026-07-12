@@ -1,30 +1,36 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useState, useContext } from 'react';
+import { createContext, useState, useContext, useEffect } from 'react';
 import api from '../services/api';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(() => {
-        const storedUser = localStorage.getItem('user');
-        const token = localStorage.getItem('token');
-        if (storedUser && token) {
-            return JSON.parse(storedUser);
-        }
-        return null;
-    });
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-
-    const loading = false;
+    useEffect(() => {
+        const checkSession = async () => {
+            try {
+                const response = await api.get('/auth/me');
+                setUser(response.data);
+                localStorage.setItem('user', JSON.stringify(response.data));
+            } catch (error) {
+                console.log("No valid session found.");
+                setUser(null);
+                localStorage.removeItem('user');
+            } finally {
+                setLoading(false);
+            }
+        };
+        checkSession();
+    }, []);
 
     const login = async (username, password) => {
         try {
             const response = await api.post('/auth/signin', { username, password });
-            const { token, ...userData } = response.data;
+            const userData = response.data;
 
-            localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(userData));
-
             setUser(userData);
             return { success: true };
         } catch (error) {
@@ -48,29 +54,15 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const loginWithToken = async (token) => {
+    const logout = async () => {
         try {
-            localStorage.setItem('token', token);
-
-            const response = await api.get('/auth/me');
-            const userData = response.data;
-
-            const userToStore = { ...userData, token }; 
-
-            localStorage.setItem('user', JSON.stringify(userToStore));
-            setUser(userToStore);
-            return { success: true };
+            await api.post('/auth/signout');
         } catch (error) {
-            console.error("Token Login Error:", error);
-            localStorage.removeItem('token');
-            return { success: false, message: 'Failed to fetch user details' };
+            console.error("Logout Error:", error);
+        } finally {
+            localStorage.removeItem('user');
+            setUser(null);
         }
-    };
-
-    const logout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setUser(null);
     };
 
     const updateUser = (userData) => {
@@ -81,7 +73,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, loginWithToken, updateUser, loading }}>
+        <AuthContext.Provider value={{ user, login, register, logout, updateUser, loading }}>
             {children}
         </AuthContext.Provider>
     );

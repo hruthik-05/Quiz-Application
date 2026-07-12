@@ -51,6 +51,10 @@ public class AnalyticsService {
         return new AdminAnalyticsDto(users, activeContests, questions, attempts);
     }
 
+    @org.springframework.cache.annotation.Caching(evict = {
+        @org.springframework.cache.annotation.CacheEvict(value = "user_stats", key = "#userId"),
+        @org.springframework.cache.annotation.CacheEvict(value = "leaderboard", allEntries = true)
+    })
     public void updateStats(String userId, String subject, ResultDto result) {
         UserPerformanceStats stats = statsRepository.findByUserId(userId)
             .orElse(new UserPerformanceStats());
@@ -100,10 +104,12 @@ public class AnalyticsService {
         statsRepository.save(stats);
     }
     
+    @org.springframework.cache.annotation.Cacheable(value = "user_stats", key = "#userId")
     public UserPerformanceStats getUserStats(String userId) {
         return statsRepository.findByUserId(userId).orElse(null);
     }
 
+    @org.springframework.cache.annotation.Cacheable(value = "leaderboard")
     public List<UserPerformanceStatsDto> getAllUserStats() {
         List<UserPerformanceStats> stats = statsRepository.findAll();
         List<String> userIds = stats.stream().map(UserPerformanceStats::getUserId).distinct().toList();

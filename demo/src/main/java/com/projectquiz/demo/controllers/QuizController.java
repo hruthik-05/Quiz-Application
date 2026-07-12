@@ -18,6 +18,7 @@ import com.projectquiz.demo.services.AdaptiveQuizService;
 import com.projectquiz.demo.services.EmailService;
 import com.projectquiz.demo.services.EvaluationService;
 import com.projectquiz.demo.services.QuizService;
+import com.projectquiz.demo.services.UserService;
 
 @RestController
 @RequestMapping("/api/quiz")
@@ -33,6 +34,8 @@ public class QuizController {
     EmailService emailService;
     @Autowired
     UserRepository userRepository;
+    @Autowired
+    UserService userService;
 
     @RequestMapping("/create/{numberOfQuestions}")
     public List<QuestionDto> createQuiz(@PathVariable int numberOfQuestions){
@@ -59,7 +62,7 @@ public class QuizController {
 
         try {
             if (userResponse.getUserId() != null) {
-                User user = userRepository.findById(userResponse.getUserId()).orElse(null);
+                User user = userService.getUserById(userResponse.getUserId());
                 if (user != null && user.getEmail() != null && !user.getEmail().isEmpty()) {
                     String subject = "Quiz Result: " + (userResponse.getSubject() != null ? userResponse.getSubject() : "Practice Quiz");
                     String body = String.format("Hi %s,\n\nYou scored %d points in your quiz.\n\nKeep learning!", 

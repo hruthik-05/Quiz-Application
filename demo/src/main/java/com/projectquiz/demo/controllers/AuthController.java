@@ -5,13 +5,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,10 +28,9 @@ import com.projectquiz.demo.models.Role;
 import com.projectquiz.demo.models.User;
 import com.projectquiz.demo.payload.request.LoginRequest;
 import com.projectquiz.demo.payload.request.SignupRequest;
-import com.projectquiz.demo.payload.response.JwtResponse;
+import com.projectquiz.demo.payload.response.UserInfoResponse;
 import com.projectquiz.demo.payload.response.MessageResponse;
 import com.projectquiz.demo.repositories.UserRepository;
-import com.projectquiz.demo.security.jwt.JwtUtils;
 import com.projectquiz.demo.security.services.UserDetailsImpl;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -42,23 +47,25 @@ public class AuthController {
   PasswordEncoder encoder;
 
   @Autowired
-  JwtUtils jwtUtils;
+  SecurityContextRepository securityContextRepository;
 
   @PostMapping("/signin")
-  public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
+  public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest, HttpServletRequest request, HttpServletResponse response) {
 
     Authentication authentication = authenticationManager.authenticate(
         new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
-    SecurityContextHolder.getContext().setAuthentication(authentication);
-    String jwt = jwtUtils.generateJwtToken(authentication);
+    SecurityContext context = SecurityContextHolder.createEmptyContext();
+    context.setAuthentication(authentication);
+    SecurityContextHolder.setContext(context);
+    securityContextRepository.saveContext(context, request, response);
     
     UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();    
     List<String> roles = userDetails.getAuthorities().stream()
         .map(item -> item.getAuthority())
         .collect(Collectors.toList());
 
-    return ResponseEntity.ok(new JwtResponse(jwt, 
+    return ResponseEntity.ok(new UserInfoResponse(
                          userDetails.getId(), 
                          userDetails.getUsername(), 
                          roles));
@@ -121,9 +128,19 @@ public class AuthController {
           .map(item -> item.getAuthority())
           .collect(Collectors.toList());
 
-      return ResponseEntity.ok(new JwtResponse(null,  
+      return ResponseEntity.ok(new UserInfoResponse(
                            userDetails.getId(), 
                            userDetails.getUsername(), 
                            roles));
+  }
+
+  @PostMapping("/signout")
+  public ResponseEntity<?> logoutUser(HttpServletRequest request) {
+    HttpSession session = request.getSession(false);
+    if (session != null) {
+      session.invalidate();
+    }
+    SecurityContextHolder.clearContext();
+    return ResponseEntity.ok(new MessageResponse("Log out successful"));
   }
 }

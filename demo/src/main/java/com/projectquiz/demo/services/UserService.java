@@ -16,6 +16,12 @@ public class UserService {
     @Autowired
     PasswordEncoder encoder;
 
+    @org.springframework.cache.annotation.Cacheable(value = "user_profiles", key = "#userId")
+    public User getUserById(String userId) {
+        return userRepository.findById(userId).orElse(null);
+    }
+
+    @org.springframework.cache.annotation.CacheEvict(value = "user_profiles", key = "#userId")
     public User updateProfile(String userId, UpdateProfileRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));

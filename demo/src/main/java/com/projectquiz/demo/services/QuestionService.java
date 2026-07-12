@@ -17,18 +17,26 @@ public class QuestionService {
     public List<Question> getAllQuestions() {
        return questionrepository.findAll();
     }
+    @org.springframework.cache.annotation.CacheEvict(value = "questions", allEntries = true)
     public void addQuestion(Question question) {
         questionrepository.save(question);
     }
+    
+    @org.springframework.cache.annotation.CacheEvict(value = "questions", key = "#id")
     public void deleteQuestion(String id) {
         questionrepository.deleteById(id);
     }
+    
+    @org.springframework.cache.annotation.CacheEvict(value = "questions", key = "#question.id")
     public void updateQuestion(Question question) {
         questionrepository.save(question);
     }
+    
     public List<Question> getQuestionsByCategory(String category) {
         return questionrepository.findByCategoryIgnoreCase(category);
     }
+    
+    @org.springframework.cache.annotation.Cacheable(value = "questions", key = "#id")
     public Question getQuestionById(String id) {
         return questionrepository.findById(id).orElse(null);
     }
@@ -42,6 +50,7 @@ public class QuestionService {
         return questionrepository.findByCategoryIgnoreCaseAndDifficulty(category, difficulty);
     }
 
+    @org.springframework.cache.annotation.CacheEvict(value = "questions", allEntries = true)
     public String addQuestionsBulk(List<Question> questions) {
         questionrepository.saveAll(questions);
         return "Successfully added " + questions.size() + " questions.";

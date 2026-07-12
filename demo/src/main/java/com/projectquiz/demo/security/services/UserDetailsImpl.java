@@ -8,11 +8,13 @@ import java.util.stream.Collectors;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.core.user.OAuth2User;
+import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.projectquiz.demo.models.User;
 
-public class UserDetailsImpl implements UserDetails {
+public class UserDetailsImpl implements UserDetails, OAuth2User {
   private static final long serialVersionUID = 1L;
 
   private String id;
@@ -23,6 +25,8 @@ public class UserDetailsImpl implements UserDetails {
   private String password;
 
   private Collection<? extends GrantedAuthority> authorities;
+
+  private Map<String, Object> attributes;
 
   public UserDetailsImpl(String id, String username, String password,
       Collection<? extends GrantedAuthority> authorities) {
@@ -54,7 +58,24 @@ public class UserDetailsImpl implements UserDetails {
   }
 
   public String getEmail() {
+    if (attributes != null && attributes.containsKey("email")) {
+      return (String) attributes.get("email");
+    }
     return null; 
+  }
+
+  @Override
+  public Map<String, Object> getAttributes() {
+    return attributes;
+  }
+
+  public void setAttributes(Map<String, Object> attributes) {
+    this.attributes = attributes;
+  }
+
+  @Override
+  public String getName() {
+    return username;
   }
 
   @Override

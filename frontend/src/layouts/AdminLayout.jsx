@@ -42,13 +42,10 @@ export default function AdminLayout() {
                     <div className="text-sm text-slate-400">Logged in as:</div>
                     <div className="font-bold mb-2">{user.username}</div>
                     <button
-                        onClick={() => {
+                        onClick={async () => {
                             if (window.confirm('Logout?')) {
-                                user?.roles ? null : null; 
+                                await logout();
                                 window.location.href = '/user/login';
-
-                                localStorage.removeItem('user');
-                                localStorage.removeItem('token');
                             }
                         }}
                         className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"

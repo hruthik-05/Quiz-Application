@@ -3,6 +3,7 @@ package com.projectquiz.demo.security;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -12,26 +13,34 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
-import com.projectquiz.demo.security.jwt.AuthEntryPointJwt;
-import com.projectquiz.demo.security.jwt.AuthTokenFilter;
 import com.projectquiz.demo.security.services.UserDetailsServiceImpl;
+import com.projectquiz.demo.security.services.CustomOAuth2UserService;
+import com.projectquiz.demo.security.oauth2.CustomOAuth2SuccessHandler;
 
 @Configuration
 @EnableWebSecurity
 public class WebSecurityConfig {
+
   @Autowired
   UserDetailsServiceImpl userDetailsService;
 
   @Autowired
-  private AuthEntryPointJwt unauthorizedHandler;
-  
+  CustomOAuth2UserService customOAuth2UserService;
 
+  @Autowired
+  CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
 
   @Bean
-  public AuthTokenFilter authenticationJwtTokenFilter() {
-    return new AuthTokenFilter();
+  public SecurityContextRepository securityContextRepository() {
+      return new HttpSessionSecurityContextRepository();
   }
 
   @Bean
@@ -57,9 +66,28 @@ public class WebSecurityConfig {
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http.cors(org.springframework.security.config.Customizer.withDefaults())
-        .csrf(csrf -> csrf.disable())
-        .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
-        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .csrf(csrf -> csrf
+            .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+            .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+        )
+        .addFilterAfter(new CsrfCookieFilter(), UsernamePasswordAuthenticationFilter.class)
+        .securityContext(context -> context.securityContextRepository(securityContextRepository()))
+        .sessionManagement(session -> session
+            .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+            .maximumSessions(2)
+        )
+        .exceptionHandling(exception -> exception
+            .defaultAuthenticationEntryPointFor(
+                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                new AntPathRequestMatcher("/api/**")
+            )
+        )
+        .headers(headers -> headers
+            .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' http://localhost:8200 http://localhost:5173 http://localhost:3000;"))
+            .frameOptions(frame -> frame.deny())
+            .contentTypeOptions(org.springframework.security.config.Customizer.withDefaults())
+            .referrerPolicy(referrer -> referrer.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
+        )
         .authorizeHttpRequests(auth -> 
           auth.requestMatchers("/api/auth/**").permitAll()
               .requestMatchers("/api/test/**").permitAll()
@@ -71,13 +99,13 @@ public class WebSecurityConfig {
               .requestMatchers("/api/question/updateQuestion").hasRole("ADMIN")
               .requestMatchers("/api/contest/submit").hasRole("USER")  
               .anyRequest().authenticated()
+        )
+        .oauth2Login(oauth2 -> oauth2
+            .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+            .successHandler(customOAuth2SuccessHandler)
         );
 
     http.authenticationProvider(authenticationProvider());
-
-    http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
-    
-
 
     return http.build();
   }
