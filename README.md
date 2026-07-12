@@ -1,202 +1,462 @@
-# ProjectQuiz - Advanced Quiz Application
+# 🎯 ProjectQuiz - Advanced Quiz & Contest Platform
 
-<<<<<<< HEAD
+A production-ready full-stack Quiz and Contest Management Platform built using **Spring Boot**, **React**, **MongoDB**, **Redis**, and **Spring Security**.
 
-=======
-![ProjectQuiz Banner](https://via.placeholder.com/1200x300?text=ProjectQuiz+Application)
->>>>>>> c083552 (Updated contest DTO and fixed imports and made changes in the result page)
+ProjectQuiz enables administrators to create and manage quizzes, contests, and question banks while allowing users to participate in contests, track performance, and analyze results through an intuitive dashboard.
 
-## 🚀 Overview
-**ProjectQuiz** is a comprehensive, full-stack web application designed to facilitate online assessments, coding contests, and skill evaluations. It features a robust **Spring Boot** backend and a modern **React** frontend, offering a seamless experience for both administrators and participants.
-
-The platform supports:
-*   **Role-Based Access Control (RBAC):** Distinct portals for Admins and Users.
-*   **Contest Management:** Create, schedule, and manage timed contests.
-*   **Real-time Evaluation:** Instant feedback on quiz submissions.
-*   **Detailed Analytics:** Visual insights into user performance using Chart.js.
-*   **Adaptive Testing:** (Future Scope) Questions that adapt to user skill level.
-
-## 🛠️ Tech Stack
-
-### Backend (Server)
-*   **Language:** Java 17
-*   **Framework:** Spring Boot 3.2.2
-    *   *Spring Security* (Authentication & Authorization)
-    *   *Spring Data MongoDB* (Database Interaction)
-    *   *Spring Boot Starter Mail* (Email Notifications)
-*   **Database:** MongoDB
-*   **Authentication:** JWT (JSON Web Tokens)
-*   **Build Tool:** Maven
-
-### Frontend (Client)
-*   **Library:** React.js 18
-*   **Build Tool:** Vite
-*   **Styling:** Tailwind CSS
-*   **State Management:** React Context API
-*   **Routing:** React Router DOM
-*   **HTTP Client:** Axios
-*   **Charts:** Chart.js / React-Chartjs-2
+The application uses **Spring Security's Session-Based Authentication**, **Google OAuth 2.0 (Authorization Code Flow)**, **Redis Caching**, and **Role-Based Access Control (RBAC)** to provide a secure and scalable platform.
 
 ---
 
-## ✨ Key Features
+# 🚀 Features
 
-### 🔐 Authentication & Security
-*   **Secure Sign-Up/Login:** JWT-based stateless authentication.
-*   **Role Management:** Automatic role assignment (Admin vs. User).
-*   **Protected Routes:** Frontend route guards to prevent unauthorized access.
+## 🔐 Authentication & Security
 
-### 👨‍💼 Admin Module
-*   **Dashboard Overview:** View total users, active contests, and question bank stats.
-*   **Question Bank Management:**
-    *   Add questions with categories (Java, Python, DSA, etc.) and difficulty levels (EASY, MEDIUM, HARD).
-    *   Batch upload questions.
-    *   Edit/Delete existing questions.
-*   **Contest Creation:** Schedule specific contests with start/end times.
-*   **Analytics:** View reports on user attempts and contest participation.
-
-### 🧑‍💻 User Module
-*   **Profile Management:** Update personal details.
-*   **Take Quiz:** Participate in open contests or practice quizzes.
-*   **Immediate Results:** View score, correct answers, and pass/fail status immediately after submission.
-*   **History:** Track past attempts and performance trends.
+- Spring Security Session-Based Authentication
+- Google OAuth 2.0 (Authorization Code Flow)
+- Email & Password Login
+- Role-Based Authorization (Admin & User)
+- Secure HttpSession Management
+- Protected Routes
+- BCrypt Password Encryption
+- CSRF Protection
+- CORS Configuration
+- Security Headers
 
 ---
 
-## ⚙️ Setup & Installation
+## 👨‍💼 Admin Module
 
-Follow these steps to get the project running on your local machine.
+- Dashboard Overview
+- User Management
+- Question Bank Management
+- Create & Schedule Contests
+- Batch Question Upload
+- Edit/Delete Questions
+- Contest Analytics
+- Leaderboard Monitoring
+- User Performance Reports
 
-### Prerequisites
-*   **Java JDK 17+** installed.
-*   **Node.js (v18+) & npm** installed.
-*   **MongoDB** installed and running locally on port `27017` (or use a cloud URI).
+---
 
-### 1. Clone the Repository
-```bash
-git clone <repository-url>
-cd projectdemo
+## 👨‍🎓 User Module
+
+- Register & Login
+- Google Sign-In
+- Update Profile
+- Participate in Contests
+- Practice Quizzes
+- View Contest Results
+- Attempt History
+- Performance Analytics
+
+---
+
+## 📝 Contest Features
+
+- Timed Contests
+- Multiple Categories
+- Difficulty Levels
+- Automatic Evaluation
+- Leaderboards
+- Contest History
+- Detailed Result Analysis
+
+---
+
+## 📊 Analytics
+
+- User Performance Charts
+- Contest Statistics
+- Category-wise Analysis
+- Score Distribution
+- Attempt History
+
+---
+
+# 🛠 Tech Stack
+
+## Backend
+
+- Java 17
+- Spring Boot 3
+- Spring Security
+- Spring OAuth2 Client
+- Spring Data MongoDB
+- Spring Cache
+- Redis
+- MongoDB
+- Maven
+- JavaMail
+
+---
+
+## Frontend
+
+- React 18
+- Vite
+- Tailwind CSS
+- React Router DOM
+- React Context API
+- Axios
+- Chart.js
+
+---
+
+## Database
+
+MongoDB Collections
+
+- Users
+- Questions
+- Contests
+- Results
+- Responses
+
+---
+
+## Cache
+
+Redis
+
+Used For
+
+- Leaderboard Caching
+- Contest Details Caching
+- Frequently Accessed Quiz Data
+- User Statistics
+- Performance Optimization
+
+---
+
+# 🏛️ Project Architecture
+
+```text
+                React Frontend
+                        │
+                        ▼
+                 REST API Requests
+                        │
+                        ▼
+          Spring Boot REST Controllers
+                        │
+                        ▼
+                 Service Layer
+            ┌───────────┴───────────┐
+            ▼                       ▼
+       MongoDB                  Redis Cache
+            │
+            ▼
+      Spring Security
+            │
+            ▼
+ SecurityContext + HttpSession
+            │
+            ▼
+ Google OAuth 2.0 (Authorization Code Flow)
 ```
 
-### 2. Backend Setup (`demo` directory)
-The backend runs on port **8200**.
+---
 
-1.  Navigate to the backend folder:
-    ```bash
-    cd demo
-    ```
-2.  **Configure Environment Variables**:
-    *   Duplicate the example properties file:
-        ```bash
-        cp src/main/resources/application.properties.example src/main/resources/application.properties
-        ```
-    *   Open `src/main/resources/application.properties` and configure:
-        ```properties
-        # MongoDB URI
-        spring.data.mongodb.uri=mongodb://localhost:27017/projectquiz
+# 🔐 Authentication Architecture
 
-        # Email Settings (for notifications)
-        spring.mail.username=YOUR_GMAIL_USERNAME
-        spring.mail.password=YOUR_APP_PASSWORD
+The project uses **Spring Security Session-Based Authentication**.
 
-        # Google OAuth (Optional)
-        spring.security.oauth2.client.registration.google.client-id=YOUR_CLIENT_ID
-        spring.security.oauth2.client.registration.google.client-secret=YOUR_CLIENT_SECRET
-        ```
-3.  **Run the Server**:
-    ```bash
-    mvn spring-boot:run
-    ```
+### Supported Login Methods
 
-### 3. Frontend Setup (`frontend` directory)
-The frontend runs on port **5173** (or 5174 if 5173 is busy).
+- Email & Password
+- Google OAuth 2.0
 
-1.  Navigate to the frontend folder:
-    ```bash
-    cd ../frontend
-    ```
-2.  **Configure Environment**:
-    *   Duplicate the example env file:
-        ```bash
-        cp .env.example .env
-        ```
-    *   The `VITE_API_BASE_URL` should match your backend URL (default: `http://localhost:8200/api`).
-3.  **Install Dependencies & Run**:
-    ```bash
-    npm install
-    npm run dev
-    ```
+### Authentication Flow
+
+```text
+User
+        │
+        ▼
+Login / Continue with Google
+        │
+        ▼
+AuthenticationManager / OAuth2Login
+        │
+        ▼
+Spring Security
+        │
+        ▼
+SecurityContext
+        │
+        ▼
+HttpSession
+        │
+        ▼
+JSESSIONID Cookie
+        │
+        ▼
+Protected Resources
+```
+
+**No JWT tokens are used. Authentication is maintained using HttpSession and JSESSIONID cookies.**
 
 ---
 
-## 📚 API Reference
+# 📂 Project Structure
 
-### Authentication (`/api/auth`)
-*   `POST /signup` - Register a new user.
-*   `POST /signin` - Login and receive JWT.
-
-### Admin (`/api/admin`)
-*   `GET /questions` - Get all questions.
-*   `POST /questions` - Add a single question.
-*   `POST /questions/batch` - Add multiple questions.
-*   `DELETE /questions/{id}` - Delete a question.
-
-### Contests (`/api/contest`)
-*   `POST /create` - Create a new contest.
-*   `GET /all` - List all contests.
-*   `GET /{id}/questions` - Get questions for a specific contest.
-*   `POST /submit` - Submit contest answers.
-
-### Users (`/api/user`)
-*   `PUT /profile` - Update user profile.
-*   `GET /api/contest/my-results/{userId}` - Get user's contest history.
+```text
+ProjectQuiz
+│
+├── demo/                  # Spring Boot Backend
+├── frontend/              # React Frontend
+└── README.md
+```
 
 ---
 
-## 🗄️ Database Schema (MongoDB)
+# ⚙️ Installation
 
-*   **Users Collection**: Stores user credentials, roles (`ROLE_USER`, `ROLE_ADMIN`), and profile info.
-*   **Questions Collection**: Stores questions, options, correct answer, category, and difficulty.
-*   **Contests Collection**: Stores contest metadata (title, start/end time) and list of question IDs.
-*   **Results Collection**: Stores user attempts, scores, and detailed answers for review.
+## Prerequisites
+
+- Java 17+
+- Node.js 18+
+- MongoDB
+- Redis
 
 ---
 
-## 🚀 Deployment
+## Clone Repository
 
-### Backend
-Build the JAR file:
+```bash
+git clone https://github.com/hruthik-05/ProjectQuiz.git
+
+cd ProjectQuiz
+```
+
+---
+
+# Backend Setup
+
+Navigate to the backend
+
 ```bash
 cd demo
-mvn clean package -DskipTests
+```
+
+Copy the example configuration
+
+```bash
+cp src/main/resources/application.properties.example \
+src/main/resources/application.properties
+```
+
+Configure
+
+```properties
+spring.data.mongodb.uri=mongodb://localhost:27017/projectquiz
+
+spring.security.oauth2.client.registration.google.client-id=YOUR_CLIENT_ID
+
+spring.security.oauth2.client.registration.google.client-secret=YOUR_CLIENT_SECRET
+
+spring.mail.username=YOUR_EMAIL
+
+spring.mail.password=YOUR_APP_PASSWORD
+```
+
+Run the backend
+
+```bash
+mvn spring-boot:run
+```
+
+Backend URL
+
+```
+http://localhost:8200
+```
+
+---
+
+# Frontend Setup
+
+Navigate to the frontend
+
+```bash
+cd frontend
+```
+
+Install dependencies
+
+```bash
+npm install
+```
+
+Run the frontend
+
+```bash
+npm run dev
+```
+
+Frontend URL
+
+```
+http://localhost:5173
+```
+
+---
+
+# Redis Setup
+
+Install Redis (Ubuntu)
+
+```bash
+sudo apt update
+
+sudo apt install redis-server
+
+sudo systemctl start redis-server
+
+sudo systemctl enable redis-server
+```
+
+Verify Redis
+
+```bash
+redis-cli ping
+```
+
+Expected Output
+
+```
+PONG
+```
+
+---
+
+# REST API Modules
+
+## Authentication
+
+```
+POST /api/auth/signup
+
+POST /api/auth/login
+
+GET /oauth2/authorization/google
+
+POST /logout
+```
+
+---
+
+## Admin
+
+```
+GET /api/admin/questions
+
+POST /api/admin/questions
+
+DELETE /api/admin/questions/{id}
+
+POST /api/admin/contest
+```
+
+---
+
+## Contest
+
+```
+GET /api/contest/all
+
+POST /api/contest/create
+
+POST /api/contest/submit
+```
+
+---
+
+## User
+
+```
+PUT /api/user/profile
+
+GET /api/user/history
+```
+
+---
+
+# 🔒 Security Features
+
+- Spring Security
+- Session-Based Authentication
+- Google OAuth 2.0 (Authorization Code Flow)
+- Role-Based Access Control (RBAC)
+- BCrypt Password Encoding
+- CSRF Protection
+- CORS Configuration
+- HttpOnly Secure Cookies
+- Security Headers
+- HttpSession Management
+- Redis Caching
+
+---
+
+# ⚡ Redis Caching
+
+Redis is integrated to improve application performance by caching:
+
+- Leaderboards
+- Contest Details
+- Frequently Accessed Quiz Data
+- User Statistics
+
+This reduces repeated database queries and improves response time.
+
+---
+
+# 🚀 Build
+
+Backend
+
+```bash
+mvn clean package
+```
+
+Run
+
+```bash
 java -jar target/demo-0.0.1-SNAPSHOT.jar
 ```
 
-### Frontend
-Build static files for production:
+Frontend
+
 ```bash
-cd frontend
 npm run build
-# The 'dist' folder now contains the optimized build.
 ```
 
 ---
 
-## ❓ Troubleshooting
+# 🔮 Future Enhancements
 
-### Port 8200/5173 Already in Use
-If you see "Port already in use", kill the existing process:
-```bash
-# Linux/Mac
-fuser -k 8200/tcp
-fuser -k 5173/tcp
-```
-
-### CORS Errors
-If you see generic "Network Error" or "401 Unauthorized" immediately:
-1.  Check `WebSecurityConfig.java` in backend to ensure `allowedOrigins` includes your frontend URL (e.g., `http://localhost:5174`).
-2.  Ensure you are sending the `Authorization: Bearer <token>` header (handled automatically by `api.js`).
+- Coding Compiler Integration
+- AI-based Question Generation
+- Adaptive Testing
+- Email Notifications
+- Certificate Generation
+- Docker Support
+- Kubernetes Deployment
+- CI/CD Pipeline
+- WebSocket-based Live Contest Updates
 
 ---
 
+# 👨‍💻 Author
 
+**Hruthik Ambati**
+
+B.Tech Computer Science & Engineering
+
+Spring Boot • React • MongoDB • Redis • Spring Security • Google OAuth 2.0
+
+---
+
+# 📄 License
+
+This project is developed for educational, learning, and portfolio purposes.
