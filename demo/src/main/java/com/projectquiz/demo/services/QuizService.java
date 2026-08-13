@@ -15,50 +15,24 @@ public class QuizService {
     @Autowired
     QuestionService qService;
     public List<QuestionDto> createQuiz(int numberOfQuestions){
-        List<Question> quizQuestions = qService.getAllQuestions();
-        
-        List<QuestionDto> quizQuestionsDto = new ArrayList<>();
-        for (Question q : quizQuestions) {
-            QuestionDto dto = new QuestionDto();
-            dto.setId(q.getId());
-            dto.setPoints(q.getPoints());
-            dto.setQuestion(q.getQuestionText());
-            dto.setOptions(q.getOptions());
-            quizQuestionsDto.add(dto);
-        }
-
-        Collections.shuffle(quizQuestionsDto);
-        return quizQuestionsDto.subList(0, Math.min(numberOfQuestions, quizQuestionsDto.size()) );
-        }
+        return createCustomQuiz("ALL", "MIXED", numberOfQuestions);
+    }
     public List<QuestionDto> createSubjectQuiz(String subject, int numberOfQuestions) {
         return createCustomQuiz(subject, "MIXED", numberOfQuestions);
     }
 
     public List<QuestionDto> createCustomQuiz(String subject, String difficulty, int numberOfQuestions) {
-        List<Question> pool = new ArrayList<>();
-        
-        if (difficulty == null || difficulty.equalsIgnoreCase("MIXED")) {
-
-             if (subject.equalsIgnoreCase("ALL")) {
-                 pool = qService.getAllQuestions();
-             } else {
-                 pool = qService.getQuestionsByCategory(subject);
-             }
-        } else {
-
+        Difficulty diffEnum = null;
+        if (difficulty != null && !difficulty.equalsIgnoreCase("MIXED")) {
             try {
-                Difficulty diffEnum = Difficulty.valueOf(difficulty.toUpperCase());
-                if (subject.equalsIgnoreCase("ALL")) {
-                    pool = qService.getQuestionsByDifficulty(diffEnum);
-                } else {
-                     pool = qService.getQuestionsByCategoryAndDifficulty(subject, diffEnum);
-                }
+                diffEnum = Difficulty.valueOf(difficulty.toUpperCase());
             } catch (IllegalArgumentException e) {
-
-                 pool = qService.getQuestionsByCategory(subject);
+                // Ignore, fallback to null (mixed difficulty)
             }
         }
-
+        
+        List<Question> pool = qService.getRandomQuestions(subject, diffEnum, numberOfQuestions);
+        
         List<QuestionDto> quizQuestionsDto = new ArrayList<>();
         for (Question q : pool) {
             QuestionDto dto = new QuestionDto();
@@ -69,7 +43,7 @@ public class QuizService {
             quizQuestionsDto.add(dto);
         }
         Collections.shuffle(quizQuestionsDto);
-        return quizQuestionsDto.subList(0, Math.min(numberOfQuestions, quizQuestionsDto.size()) );
+        return quizQuestionsDto;
     }
     }
 

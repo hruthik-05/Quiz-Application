@@ -4,9 +4,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.Cache;
 
 import com.projectquiz.demo.models.Contest;
 import com.projectquiz.demo.models.ContestAttempt;
@@ -39,34 +45,77 @@ public class ContestService {
     @Autowired
     UserService userService;
 
-    @org.springframework.cache.annotation.CacheEvict(value = {"contests", "contests_all", "contests_active"}, allEntries = true)
-    public Contest createContest(Contest contest) {
+    @Autowired
+    private CacheManager cacheManager;
 
+    @Autowired
+    private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
+
+    @jakarta.annotation.PostConstruct
+    public void initIndexes() {
+        try {
+            contestRepository.count(); 
+            var indexOps = mongoTemplate.indexOps(ContestAttempt.class);
+            indexOps.ensureIndex(new org.springframework.data.mongodb.core.index.CompoundIndexDefinition(
+                new org.bson.Document("userId", 1)
+                    .append("contestId", 1)
+                    .append("attemptNumber", 1)
+            ).unique().named("user_contest_attempt_idx"));
+        } catch (Exception e) {
+            System.err.println("Failed to ensure contest_attempts unique index: " + e.getMessage());
+        }
+    }
+
+    @CacheEvict(value = {"contests", "contests_all", "contests_active", "contest_questions"}, allEntries = true)
+    public Contest createContest(Contest contest) {
+        if (contest.getContestQuestions() != null) {
+            List<String> qIds = new ArrayList<>();
+            for (Question q : contest.getContestQuestions()) {
+                if (q.getId() == null || q.getId().trim().isEmpty()) {
+                    q.setId(UUID.randomUUID().toString());
+                }
+                qIds.add(q.getId());
+            }
+            contest.setQuestionIds(qIds);
+        }
         return contestRepository.save(contest);
     }
 
-    @org.springframework.cache.annotation.Cacheable(value = "contests_all")
+    @Cacheable(value = "contests_all")
     public List<Contest> getAllContests() {
-        return contestRepository.findAll();
+        List<Contest> contests = contestRepository.findAll();
+        for (Contest c : contests) {
+            publishContestQuestionsIfEnded(c);
+        }
+        return contests;
     }
     
-    @org.springframework.cache.annotation.Cacheable(value = "contests_active")
+    @Cacheable(value = "contests_active")
     public List<Contest> getActiveContests() {
-        return contestRepository.findByIsActiveTrue();
+        List<Contest> contests = contestRepository.findByIsActiveTrue();
+        for (Contest c : contests) {
+            publishContestQuestionsIfEnded(c);
+        }
+        return contests;
     }
 
-    @org.springframework.cache.annotation.Cacheable(value = "contests", key = "#id")
+    @Cacheable(value = "contests", key = "#id")
     public Contest getContestById(String id) {
         return contestRepository.findById(id).orElse(null);
     }
 
+    @Cacheable(value = "contest_questions", key = "#contestId")
     public List<Question> getQuestionsForContest(String contestId) {
-        Contest contest = getContestById(contestId);
-        if (contest == null || contest.getQuestionIds() == null) {
+        long now = System.currentTimeMillis();
+        
+        Contest contest = contestRepository.findById(contestId).orElse(null);
+        
+        if (contest == null) {
             return List.of();
         }
-        Iterable<Question> questions = questionRepository.findAllById(contest.getQuestionIds());
-        return (List<Question>) questions;
+        if(now<contest.getEndTime()) return List.of();
+        publishContestQuestionsIfEnded(contest);
+        return contest.getContestQuestions() != null ? contest.getContestQuestions() : List.of();
     }
 
     public ContestAttempt submitContest(String contestId, String userId, Map<String, String> responses, long timeTaken) {
@@ -77,8 +126,8 @@ public class ContestService {
         }
 
 
-        int attempts = attemptRepository.countByUserIdAndContestId(userId, contestId);
-        if (attempts >= contest.getMaxAttempts()) {
+        int attemptsCount = attemptRepository.countByUserIdAndContestId(userId, contestId);
+        if (attemptsCount >= contest.getMaxAttempts()) {
              throw new RuntimeException("Maximum attempts reached for this contest!");
         }
         
@@ -93,16 +142,27 @@ public class ContestService {
              throw new RuntimeException("Contest submission window closed.");
         }
 
+        long maxPossibleTime = now - contest.getStartTime();
+        if (timeTaken < 0 || timeTaken > maxPossibleTime) {
+            timeTaken = maxPossibleTime;
+        }
 
         double score = 0;
         int correct = 0;
         int wrong = 0;
 
+        List<Question> contestQuestions = contest.getContestQuestions();
+        if (contestQuestions == null) {
+            contestQuestions = List.of();
+        }
+        Map<String, Question> contestQuestionsMap = contestQuestions.stream()
+            .collect(Collectors.toMap(Question::getId, q -> q));
+
         for (Map.Entry<String, String> entry : responses.entrySet()) {
             String questionId = entry.getKey();
             String userAnswer = entry.getValue();
 
-            Question q = questionRepository.findById(questionId).orElse(null);
+            Question q = contestQuestionsMap.get(questionId);
             if (q != null) {
                 if (q.getAnswer().trim().equalsIgnoreCase(userAnswer.trim())) {
                     score += 1.0; 
@@ -117,9 +177,6 @@ public class ContestService {
         }
         
 
-
-
-
         ContestAttempt attempt = new ContestAttempt();
         attempt.setContestId(contestId);
         attempt.setUserId(userId);
@@ -127,9 +184,22 @@ public class ContestService {
         attempt.setScore(score);
         attempt.setTimeTaken(timeTaken);
         attempt.setSubmittedAt(now);
+        attempt.setAttemptNumber(attemptsCount + 1);
 
-        ContestAttempt savedAttempt = attemptRepository.save(attempt);
+        ContestAttempt savedAttempt;
+        try {
+            savedAttempt = attemptRepository.save(attempt);
+        } catch (com.mongodb.MongoWriteException | org.springframework.dao.DataIntegrityViolationException e) {
+            throw new RuntimeException("Maximum attempts reached for this contest!");
+        }
 
+        if (now > contest.getEndTime()) {
+            java.util.Map<String, String> correctAnswers = new java.util.HashMap<>();
+            for (Question q : contestQuestions) {
+                correctAnswers.put(q.getId(), q.getAnswer());
+            }
+            savedAttempt.setCorrectAnswers(correctAnswers);
+        }
 
         User user = userService.getUserById(userId);
         if (user != null) {
@@ -149,8 +219,12 @@ public class ContestService {
         List<String> userIds = attempts.stream().map(ContestAttempt::getUserId).distinct().toList();
         List<User> users = (List<User>) userRepository.findAllById(userIds);
         Map<String, User> userMap = users.stream().collect(Collectors.toMap(User::getId, u -> u));
-        Contest contest = getContestById(contestId);
+        Contest contest = contestRepository.findById(contestId).orElse(null);
+        if (contest != null) {
+            publishContestQuestionsIfEnded(contest);
+        }
         String contestTitle = contest != null ? contest.getTitle() : "Unknown Contest";
+        long now = System.currentTimeMillis();
 
         return attempts.stream().map(a -> {
             ContestAttemptDto dto = new ContestAttemptDto();
@@ -162,6 +236,16 @@ public class ContestService {
             dto.setTimeTaken(a.getTimeTaken());
             dto.setSubmittedAt(a.getSubmittedAt());
             dto.setResponses(a.getResponses());
+
+            if (contest != null && now > contest.getEndTime()) {
+                java.util.Map<String, String> correctAnswers = new java.util.HashMap<>();
+                if (contest.getContestQuestions() != null) {
+                    for (Question q : contest.getContestQuestions()) {
+                        correctAnswers.put(q.getId(), q.getAnswer());
+                    }
+                }
+                dto.setCorrectAnswers(correctAnswers);
+            }
 
             User u = userMap.get(a.getUserId());
             if (u != null) {
@@ -175,6 +259,79 @@ public class ContestService {
     }
     
     public List<ContestAttempt> getStudentAttempts(String userId) {
-        return attemptRepository.findByUserId(userId);
+        List<ContestAttempt> attempts = attemptRepository.findByUserId(userId);
+        long now = System.currentTimeMillis();
+        for (ContestAttempt attempt : attempts) {
+            Contest contest = contestRepository.findById(attempt.getContestId()).orElse(null);
+            if (contest != null) {
+                publishContestQuestionsIfEnded(contest);
+                if (now > contest.getEndTime()) {
+                    java.util.Map<String, String> correctAnswers = new java.util.HashMap<>();
+                    if (contest.getContestQuestions() != null) {
+                        for (Question q : contest.getContestQuestions()) {
+                            correctAnswers.put(q.getId(), q.getAnswer());
+                        }
+                    }
+                    attempt.setCorrectAnswers(correctAnswers);
+                }
+            }
+        }
+        return attempts;
+    }
+
+    public synchronized void publishContestQuestionsIfEnded(Contest contest) {
+        if (contest == null || contest.getContestQuestions() == null || contest.getContestQuestions().isEmpty()) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now > contest.getEndTime()) {
+            boolean publishedNew = false;
+            for (Question q : contest.getContestQuestions()) {
+                if (!questionRepository.existsById(q.getId())) {
+                    Question pq = new Question();
+                    pq.setId(q.getId());
+                    pq.setQuestionText(q.getQuestionText());
+                    pq.setOptions(q.getOptions());
+                    pq.setAnswer(q.getAnswer());
+                    pq.setPoints(q.getPoints());
+                    pq.setCategory(q.getCategory());
+                    pq.setDifficulty(q.getDifficulty());
+                    
+                    questionRepository.save(pq);
+                    publishedNew = true;
+                }
+                else{
+                    break;
+                }
+            }
+            if (publishedNew) {
+                evictContestCache(contest.getId());
+            }
+        }
+    }
+
+    public void evictContestCache(String contestId) {
+        if (cacheManager != null) {
+            try {
+                Cache cache = cacheManager.getCache("contests");
+                if (cache != null) {
+                    cache.evict(contestId);
+                }
+                Cache qCache = cacheManager.getCache("contest_questions");
+                if (qCache != null) {
+                    qCache.evict(contestId);
+                }
+                Cache allCache = cacheManager.getCache("contests_all");
+                if (allCache != null) {
+                    allCache.clear();
+                }
+                Cache activeCache = cacheManager.getCache("contests_active");
+                if (activeCache != null) {
+                    activeCache.clear();
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to evict contest cache: " + e.getMessage());
+            }
+        }
     }
 }

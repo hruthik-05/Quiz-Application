@@ -1,0 +1,41 @@
+CONTEST APPLICATION CHANGES SUMMARY
+
+1. FILES & CLASSES CHANGED:
+- Backend:
+  - Contest.java (com.projectquiz.demo.models.Contest)
+  - ContestService.java (com.projectquiz.demo.services.ContestService)
+  - QuestionController.java (com.projectquiz.demo.controllers.QuestionController)
+  - WebSecurityConfig.java (com.projectquiz.demo.security.WebSecurityConfig)
+- Frontend:
+  - AdminContest.jsx (frontend/src/pages/AdminContest.jsx)
+  - Result.jsx (frontend/src/pages/Result.jsx)
+  - QuizPlayer.jsx (frontend/src/pages/QuizPlayer.jsx)
+
+2. WHAT WAS CHANGED:
+- Backend:
+  - Added "contestQuestions" field to the Contest model, annotated with @JsonProperty(access = Access.WRITE_ONLY).
+  - Injected CacheManager into ContestService.
+  - Refactored createContest, getQuestionsForContest, submitContest, getAttemptsForContest, and getStudentAttempts to work with the inline question list inside the Contest model instead of querying the main Question repository.
+  - Added publishContestQuestionsIfEnded(Contest) and evictContestCache(String) in ContestService.
+- Frontend:
+  - Implemented an interactive Question Builder in the Admin Contest creation page (AdminContest.jsx).
+  - Modified the creation submission to send the new questions array directly inside the payload as "contestQuestions".
+
+3. HOW CONTEST QUESTIONS ARE STORED:
+- Stored as an inline sub-document array (contestQuestions field) directly within the Contest document in the MongoDB "contests" collection.
+- Because of the write-only @JsonProperty annotation on the model, they are parsed from incoming requests during contest creation, but excluded from HTTP serialization responses back to students.
+
+4. WHEN THEY ARE PUBLISHED TO THE NORMAL QUESTION COLLECTION:
+- Publication occurs dynamically on-demand as soon as a contest's end time passes (now > contest.endTime).
+- The check is executed whenever contests are listed or retrieved (such as in getQuestionsForContest, getAllContests, getActiveContests, and getStudentAttempts).
+- Publication is fully idempotent: it checks if the question ID already exists in the repository before saving (using existsById) to prevent duplicate question documents.
+
+5. HOW REDIS CACHING WORKS:
+- Caching is managed through Spring Cache with a 10-minute TTL and Jackson JSON Serialization.
+- Contest details are cached under "contests", "contests_all", and "contests_active".
+- Contest questions are cached under "contest_questions".
+- Caches are automatically evicted when a new contest is created or when questions are published to the main repository after a contest ends.
+
+6. TEST AND BUILD RESULTS:
+- Backend compilation: Build successful (BUILD SUCCESS).
+- Frontend compilation: Build successful (vite build complete).

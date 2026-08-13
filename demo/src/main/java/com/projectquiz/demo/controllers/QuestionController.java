@@ -24,9 +24,19 @@ public class QuestionController{
     @Autowired
     QuestionService qService;
 
+    private QuestionDto convertToDto(Question q) {
+        if (q == null) return null;
+        QuestionDto dto = new QuestionDto();
+        dto.setId(q.getId());
+        dto.setPoints(q.getPoints());
+        dto.setQuestion(q.getQuestionText());
+        dto.setOptions(q.getOptions());
+        return dto;
+    }
+
     @GetMapping("/allQuestions")
-    public List<Question> getAllQuestions(){
-        return qService.getAllQuestions();
+    public List<QuestionDto> getAllQuestions(){
+        return qService.getAllQuestions().stream().map(this::convertToDto).collect(java.util.stream.Collectors.toList());
     }
     @PostMapping("/addQuestion")
     public String addQuestion(@RequestBody Question question){
@@ -44,24 +54,24 @@ public class QuestionController{
         qService.updateQuestion(question);
     }
     @GetMapping("/getQuestionsByCategory/{category}")
-    public List<Question> getQuestionsByCategory(@PathVariable String category){ 
-        return qService.getQuestionsByCategory(category);
+    public List<QuestionDto> getQuestionsByCategory(@PathVariable String category){ 
+        return qService.getQuestionsByCategory(category).stream().map(this::convertToDto).collect(java.util.stream.Collectors.toList());
     }
     @GetMapping("/getQuestionById/{id}")
-    public Question getQuestionById(@PathVariable String id){
-        return qService.getQuestionById(id);
+    public QuestionDto getQuestionById(@PathVariable String id){
+        return convertToDto(qService.getQuestionById(id));
     }
     @PostMapping("/getQuestionsByListOfIds")
-    public List<Question> getQuestionsByListOfIds(@RequestBody List<String> ids){
-        return qService.getQuestionsByListOfIds(ids);
+    public List<QuestionDto> getQuestionsByListOfIds(@RequestBody List<String> ids){
+        return qService.getQuestionsByListOfIds(ids).stream().map(this::convertToDto).collect(java.util.stream.Collectors.toList());
     }
     @GetMapping("/getQuestionsByDifficulty/{difficulty}")
-    public List<Question> getQuestionsByDifficulty(@PathVariable Difficulty difficulty){
-        return qService.getQuestionsByDifficulty(difficulty);
+    public List<QuestionDto> getQuestionsByDifficulty(@PathVariable Difficulty difficulty){
+        return qService.getQuestionsByDifficulty(difficulty).stream().map(this::convertToDto).collect(java.util.stream.Collectors.toList());
     }
     @GetMapping("/{category}/{difficulty}")
-    public List<Question> getQuestionsByCategoryAndDifficulty(@PathVariable String category, @PathVariable Difficulty difficulty){
-        return qService.getQuestionsByCategoryAndDifficulty(category, difficulty);
+    public List<QuestionDto> getQuestionsByCategoryAndDifficulty(@PathVariable String category, @PathVariable Difficulty difficulty){
+        return qService.getQuestionsByCategoryAndDifficulty(category, difficulty).stream().map(this::convertToDto).collect(java.util.stream.Collectors.toList());
     }
 
     @PostMapping("/bulk")

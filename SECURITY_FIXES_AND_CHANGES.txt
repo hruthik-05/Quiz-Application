@@ -1,0 +1,104 @@
+================================================================================
+PROJECT QUIZ APPLICATION SECURITY FIXES AND CHANGES REPORT
+================================================================================
+
+1. ADMIN ROLE SIGNUP VULNERABILITY
+- File Changed: AuthController.java (com.projectquiz.demo.controllers)
+- What Changed: Updated registerUser() to reject signup requests that supply the ADMIN role. Enforced that public signup always registers a user with ROLE_USER.
+- Verification Result: Verified backend rejects role elevation attempts; only USER is assigned.
+
+2. CLIENT-CONTROLLED userId SPOOFING
+- Files Changed: QuizController.java, EvaluateController.java, ContestController.java, AnalyticsController.java (com.projectquiz.demo.controllers)
+- What Changed: Extracted the authenticated principal (UserDetailsImpl) from Spring Security instead of trusting userIds from request payloads or URL path variables. Overwrote incoming userIds for quiz/contest submissions and added 403 Forbidden checks for non-matching IDs (unless the requester is an Admin).
+- Verification Result: Verified that user spoofing is blocked. Non-matching userIds return 403.
+
+3. CORRECT ANSWER LEAK
+- Files Changed: QuestionController.java (com.projectquiz.demo.controllers), ContestController.java (com.projectquiz.demo.controllers), ResultDto.java, ContestAttempt.java, ContestAttemptDto.java (com.projectquiz.demo.models), EvaluationService.java, ContestService.java (com.projectquiz.demo.services), Result.jsx (frontend/src/pages)
+- What Changed: Changed student-facing question APIs to return QuestionDto (which does not contain the "answer" field) instead of the Question entity. Added a transient/temporary correctAnswers map populated only inside submit responses (and for contests, only after the contest endTime has passed).
+- Verification Result: Verified student APIs do not return answers during the quiz. Review answers are visible only after submission (and after contest ends).
+
+4. @PreAuthorize METHOD SECURITY
+- File Checked: WebSecurityConfig.java (com.projectquiz.demo.security)
+- What Changed: Verified that @EnableMethodSecurity(prePostEnabled = true) is properly enabled, securing all method-level annotations.
+- Verification Result: Checked and verified authorization behavior. ADMIN-only endpoints properly return 403 to normal users.
+
+5. CONTEST QUESTION VALIDATION
+- File Changed: ContestService.java (com.projectquiz.demo.services)
+- What Changed: Enforced validation in submitContest() to verify every submitted questionId is registered in that specific contest's questionIds list.
+- Verification Result: Non-contest questions are ignored during score calculation.
+
+6. TIMING SECURITY
+- Files Changed: QuizController.java, EvaluateController.java (com.projectquiz.demo.controllers), ContestService.java (com.projectquiz.demo.services)
+- What Changed: Overrode client-controlled endTime and validated startTime using server System.currentTimeMillis() for practice/adaptive quizzes. Enforced server-side startTime/endTime validation for contests, preserving the 5-minute submission grace period. Capped timeTaken to the maximum elapsed time.
+- Verification Result: Server-side timing validates correctly and prevents submission forgery.
+
+7. maxAttempts RACE CONDITION
+- Files Changed: ContestAttempt.java (com.projectquiz.demo.models), ContestService.java (com.projectquiz.demo.services), application.properties (resources)
+- What Changed: Added attemptNumber to ContestAttempt. Configured unique compound index on (userId, contestId, attemptNumber). Programmatically ensured the index exists on startup. In submitContest(), attemptNumber is set to count + 1 and duplicate key exceptions are caught to prevent concurrent bypass.
+- Verification Result: Database prevents concurrent duplicate attempts.
+
+8. UNSAFE ITERABLE CAST
+- File Changed: ContestService.java (com.projectquiz.demo.services)
+- What Changed: Replaced the unsafe direct cast from Iterable<Question> to (List<Question>) in getQuestionsForContest() by copying items into a new list.
+- Verification Result: Compilation and runtime casting errors resolved.
+
+9. RANDOM QUESTION OPTIMIZATION
+- Files Changed: QuestionService.java, QuizService.java (com.projectquiz.demo.services)
+- What Changed: Implemented aggregation $sample in MongoTemplate to pull random questions from the database directly, preserving subject/difficulty filtering. Removed inefficient memory-based shuffling of the entire collection.
+- Verification Result: Aggregation executes quickly and memory consumption is optimized.
+
+10. ADMIN CONTROLLER REFACTORING
+- Files Changed: AdminController.java (com.projectquiz.demo.controllers), AdminService.java (com.projectquiz.demo.services) [NEW]
+- What Changed: Refactored AdminController to delegate operations to AdminService instead of directly autowiring QuestionRepository.
+- Verification Result: Refactoring compile and runtime checks verify administrative APIs function correctly.
+
+11. INPUT VALIDATION
+- Files Changed: AuthController.java, UserController.java, ContestController.java (com.projectquiz.demo.controllers), AdminService.java (com.projectquiz.demo.services)
+- What Changed: Added validation for signup fields, update profile requests, contest fields (duration, start/end time, negative markings), and question fields (points, text, answer mapping to options, categories).
+- Verification Result: Validations throw BAD_REQUEST or return badRequest response.
+
+12. EXCEPTION HANDLING
+- File Changed: GlobalExceptionHandler.java (com.projectquiz.demo.config) [NEW]
+- What Changed: Created a RestControllerAdvice handler translating IllegalArgumentException, ResponseStatusException, and RuntimeException to consistent JSON responses without leaking stack trace details.
+- Verification Result: Errors are clean JSON payloads matching frontend expected interfaces.
+
+13. ANALYTICS INTEGRITY
+- File Changed: QuizController.java (com.projectquiz.demo.controllers)
+- What Changed: Overwriting the userResponse userId with the authenticated principal's userId guarantees users cannot update or poison another user's stats.
+- Verification Result: Authenticated userId enforces data integrity.
+
+14. REDIS CACHING
+- Files Changed: AdminService.java, QuestionService.java (com.projectquiz.demo.services)
+- What Changed: Ensured @CacheEvict(value = "questions", allEntries = true) clears cached question profiles when any changes are made by the administrator.
+- Verification Result: Questions cache updates correctly on question additions/deletions.
+
+15. SESSION / OAUTH2 SECURITY
+- Files Checked: WebSecurityConfig.java, CsrfCookieFilter.java
+- What Changed: Preserved Spring Security stateful session configuration, Google OAuth2 success login redirects, and CSRF protection filter.
+- Verification Result: Login, logout, and token cookies work securely.
+
+16. CONFIGURABLE CORS/DEPLOYMENT URLS
+- Files Changed: application.properties (resources), WebSecurityConfig.java (security), CustomOAuth2SuccessHandler.java (oauth2), Register.jsx, UserLogin.jsx (frontend/src/pages)
+- What Changed: Added frontend/backend URLs and CORS origins in application.properties. Configured WebSecurityConfig and CustomOAuth2SuccessHandler to read these values. Rewrote Register and Login pages to derive OAuth2 endpoints dynamically.
+- Verification Result: Configurations are decoupled from environment hostnames.
+
+17. DOCUMENTATION
+- File Changed: README.md
+- What Changed: Replaced claims of JWT stateful authorization with correct session-based + Google OAuth2 architecture descriptions.
+- Verification Result: Documentation aligned with project design.
+
+================================================================================
+DATABASE STARTUP FIX
+- File Changed: User.java (com.projectquiz.demo.models)
+- What Changed: Configured email field index to be sparse: @Indexed(unique = true, sparse = true). This prevents E11000 duplicate key error on null values when Spring Boot attempts to construct the unique index on startup.
+- Verification Result: Application boots up and runs clean.
+
+================================================================================
+AXIOS CROSS-ORIGIN CSRF AND CORS FIX
+- Files Changed: api.js (frontend/src/services), WebSecurityConfig.java (security)
+- What Changed: Added a request interceptor to api.js to manually read the XSRF-TOKEN cookie and attach it to the X-XSRF-TOKEN header (as Axios skips this automatically on cross-origin requests). Configured CsrfTokenRequestAttributeHandler with null attribute name in WebSecurityConfig to disable deferred resolution and enforce immediate validation for single-page applications.
+- Verification Result: Axios requests successfully carry the CSRF token, allowing logins and registration to execute securely without CORS blocking or redirection conflicts.
+
+================================================================================
+NO REMAINING ISSUES IDENTIFIED. APPLICATION IS COMPLETELY COMPILED AND RUNNABLE.
+================================================================================

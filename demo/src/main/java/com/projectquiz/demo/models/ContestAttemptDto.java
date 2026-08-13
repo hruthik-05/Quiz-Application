@@ -18,4 +18,5 @@ public class ContestAttemptDto {
 
 
     private Map<String, String> responses; 
+    private Map<String, String> correctAnswers;
 }

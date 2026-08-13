@@ -7,6 +7,14 @@ public class ResultDto {
     private int skipped;
     private long timeTaken;
     private int penalty;
+    private java.util.Map<String, String> correctAnswers;
+
+    public java.util.Map<String, String> getCorrectAnswers() {
+        return correctAnswers;
+    }
+    public void setCorrectAnswers(java.util.Map<String, String> correctAnswers) {
+        this.correctAnswers = correctAnswers;
+    }
 
     public int getTotalScore() {
         return totalScore;

@@ -133,7 +133,9 @@ export default function Result() {
                             <div className="space-y-6">
                                 {questions.map((q, idx) => {
                                     const userResp = isContest ? attempt?.responses?.[q.id] : state?.responses?.[q.id];
-                                    const isCorrect = q.answer && userResp && q.answer.trim().toLowerCase() === userResp.trim().toLowerCase();
+                                    const qAnswer = q.answer || (isContest ? attempt?.correctAnswers?.[q.id] : result?.correctAnswers?.[q.id]);
+                                    const isGraded = !!qAnswer;
+                                    const isCorrect = isGraded && userResp && qAnswer.trim().toLowerCase() === userResp.trim().toLowerCase();
                                     return (
                                         <div key={q.id} className="pb-6 border-b border-slate-100 last:border-0 last:pb-0">
                                             <div className="flex justify-between items-start gap-4 mb-3">
@@ -142,26 +144,32 @@ export default function Result() {
                                                     <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">{q.points} pts</span>
                                                 </div>
                                                 {userResp ? (
-                                                    isCorrect ? (
+                                                    !isGraded ? (
+                                                        <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-200">Pending</span>
+                                                    ) : isCorrect ? (
                                                         <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Correct</span>
                                                     ) : (
                                                         <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-rose-50 text-rose-700 border border-rose-200">Incorrect</span>
                                                     )
                                                 ) : (
-                                                    <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-200">Unanswered</span>
+                                                    <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-50 text-slate-700 border border-slate-200">Unanswered</span>
                                                 )}
                                             </div>
                                             <p className="text-slate-800 font-medium mb-4">{q.questionText || q.question}</p>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                 {q.options?.map((opt, oIdx) => {
                                                     const isSelected = userResp === opt;
-                                                    const isCorrectOpt = q.answer === opt;
+                                                    const isCorrectOpt = qAnswer === opt;
                                                     let optClass = "border border-slate-200 text-slate-600 bg-slate-50/50 hover:bg-slate-50";
                                                     if (isSelected) {
-                                                        optClass = isCorrect 
-                                                            ? "border-emerald-500 bg-emerald-50 text-emerald-900 font-medium" 
-                                                            : "border-rose-500 bg-rose-50 text-rose-900 font-medium";
-                                                    } else if (isCorrectOpt) {
+                                                        if (!isGraded) {
+                                                            optClass = "border-indigo-500 bg-indigo-50 text-indigo-900 font-medium";
+                                                        } else {
+                                                            optClass = isCorrect 
+                                                                ? "border-emerald-500 bg-emerald-50 text-emerald-900 font-medium" 
+                                                                : "border-rose-500 bg-rose-50 text-rose-900 font-medium";
+                                                        }
+                                                    } else if (isGraded && isCorrectOpt) {
                                                         optClass = "border-emerald-500/50 bg-emerald-50/20 text-emerald-800";
                                                     }
                                                     return (
@@ -172,10 +180,10 @@ export default function Result() {
                                                     );
                                                 })}
                                             </div>
-                                            {!isCorrect && q.answer && (
+                                            {isGraded && !isCorrect && qAnswer && (
                                                 <div className="mt-3 text-xs text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-slate-100 flex items-center gap-1.5">
                                                     <span className="font-bold text-slate-700">Correct Answer:</span>
-                                                    <span className="text-slate-600">{q.answer}</span>
+                                                    <span className="text-slate-600">{qAnswer}</span>
                                                 </div>
                                             )}
                                         </div>

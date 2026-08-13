@@ -18,7 +18,7 @@ public class User {
     private String id;
     @org.springframework.data.mongodb.core.index.Indexed(unique = true)
     private String username;
-    @org.springframework.data.mongodb.core.index.Indexed(unique = true)
+    @org.springframework.data.mongodb.core.index.Indexed(unique = true, sparse = true)
     private String email;
     private String password;
     private String provider; 

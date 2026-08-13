@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.projectquiz.demo.models.Question;
-import com.projectquiz.demo.repositories.QuestionRepository;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -24,29 +23,29 @@ import com.projectquiz.demo.repositories.QuestionRepository;
 public class AdminController {
 
     @Autowired
-    QuestionRepository questionRepository;
+    com.projectquiz.demo.services.AdminService adminService;
 
     @GetMapping("/questions")
     public List<Question> getAllQuestions() {
-        return questionRepository.findAll();
+        return adminService.getAllQuestions();
     }
 
     @PostMapping("/questions")
     public Question createQuestion(@RequestBody Question question) {
-        return questionRepository.save(question);
+        return adminService.createQuestion(question);
     }
     
     @PostMapping("/questions/batch")
     public List<Question> createQuestionsBatch(@RequestBody List<Question> questions) {
-        return questionRepository.saveAll(questions);
+        return adminService.createQuestionsBatch(questions);
     }
 
     @DeleteMapping("/questions/{id}")
     public ResponseEntity<?> deleteQuestion(@PathVariable String id) {
-        if (!questionRepository.existsById(id)) {
+        boolean deleted = adminService.deleteQuestion(id);
+        if (!deleted) {
             return ResponseEntity.notFound().build();
         }
-        questionRepository.deleteById(id);
         return ResponseEntity.ok().build();
     }
 }

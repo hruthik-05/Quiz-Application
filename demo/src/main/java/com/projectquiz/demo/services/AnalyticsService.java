@@ -123,7 +123,7 @@ public class AnalyticsService {
             dto.setSubjectAccuracy(s.getSubjectAccuracy());
             dto.setSubjectAttempts(s.getSubjectAttempts());
             dto.setLastUpdated(s.getLastUpdated());
-            
+    
             User u = userMap.get(s.getUserId());
             if (u != null) {
                 dto.setUsername(u.getUsername());

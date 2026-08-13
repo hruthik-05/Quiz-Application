@@ -6,11 +6,47 @@ ProjectQuiz enables administrators to create and manage quizzes, contests, and q
 
 The application uses **Spring Security's Session-Based Authentication**, **Google OAuth 2.0 (Authorization Code Flow)**, **Redis Caching**, and **Role-Based Access Control (RBAC)** to provide a secure and scalable platform.
 
----
+## 🚀 Overview
+**ProjectQuiz** is a comprehensive, full-stack web application designed to facilitate online assessments, coding contests, and skill evaluations. It features a robust **Spring Boot** backend and a modern **React** frontend, offering a seamless experience for both administrators and participants.
+
+The platform supports:
+*   **Role-Based Access Control (RBAC):** Distinct portals for Admins and Users.
+*   **Contest Management:** Create, schedule, and manage timed contests.
+*   **Real-time Evaluation:** Instant feedback on quiz submissions.
+*   **Detailed Analytics:** Visual insights into user performance using Chart.js.
+*   **Adaptive Testing:** (Future Scope) Questions that adapt to user skill level.
+
+## 🛠️ Tech Stack
+
+### Backend (Server)
+*   **Language:** Java 17
+*   **Framework:** Spring Boot 3.2.2
+    *   *Spring Security* (Authentication & Authorization)
+    *   *Spring Data MongoDB* (Database Interaction)
+    *   *Spring Boot Starter Mail* (Email Notifications)
+*   **Database:** MongoDB
+*   **Authentication:** Session-based (Spring Security + Google OAuth2)
+*   **Cache & Session Store:** Redis
+*   **Build Tool:** Maven
+
+### Frontend (Client)
+*   **Library:** React.js 18
+*   **Build Tool:** Vite
+*   **Styling:** Tailwind CSS
+*   **State Management:** React Context API
+*   **Routing:** React Router DOM
+*   **HTTP Client:** Axios
+*   **Charts:** Chart.js / React-Chartjs-2
+
+## 🔐 Authentication & Security
+* **Secure Sign-Up/Login:** Session-based stateful authentication using Spring Security session management.
+* **Google OAuth2 Integration:** Single sign-on using Google login.
+* **Caches & State:** Redis integration backing Spring Cache annotations (`@Cacheable`/`@CacheEvict`).
+* **Role Management:** Automatic role assignment (Admin vs. User).
+* **Protected Routes:** Frontend route guards to prevent unauthorized access.---
 
 # 🚀 Features
 
-## 🔐 Authentication & Security
 
 - Spring Security Session-Based Authentication
 - Google OAuth 2.0 (Authorization Code Flow)

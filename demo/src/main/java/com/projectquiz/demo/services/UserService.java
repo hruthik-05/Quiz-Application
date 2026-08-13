@@ -10,6 +10,7 @@ import com.projectquiz.demo.repositories.UserRepository;
 
 @Service
 public class UserService {
+
     @Autowired
     UserRepository userRepository;
 
@@ -26,7 +27,6 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-
         if (request.getUsername() != null && !request.getUsername().isEmpty()) {
 
             userRepository.findByUsername(request.getUsername())
@@ -38,24 +38,12 @@ public class UserService {
             user.setUsername(request.getUsername());
         }
 
-
         if (request.getEmail() != null && !request.getEmail().isEmpty()) {
 
-
-
-
-
-             
-
-
-
-
-
-
-             if (!request.getEmail().equals(user.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
-                 throw new RuntimeException("Email already in use");
-             }
-             user.setEmail(request.getEmail());
+            if (!request.getEmail().equals(user.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
+                throw new RuntimeException("Email already in use");
+            }
+            user.setEmail(request.getEmail());
         }
 
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {

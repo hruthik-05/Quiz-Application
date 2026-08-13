@@ -81,7 +81,8 @@ export default function QuizPlayer() {
                     result: res.data, 
                     total: questions.length, 
                     mode: "PRACTICE", 
-                    responses: answers 
+                    responses: answers,
+                    questions: questions
                 } 
             });
         } catch (err) {

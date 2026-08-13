@@ -14,6 +14,36 @@ import com.projectquiz.demo.repositories.QuestionRepository;
 public class QuestionService {
     @Autowired
     QuestionRepository questionrepository;
+
+    @Autowired
+    private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
+
+    public List<Question> getRandomQuestions(String category, Difficulty difficulty, int limit) {
+        List<org.springframework.data.mongodb.core.aggregation.AggregationOperation> operations = new java.util.ArrayList<>();
+        List<org.springframework.data.mongodb.core.query.Criteria> criteriaList = new java.util.ArrayList<>();
+
+        if (category != null && !category.equalsIgnoreCase("ALL")) {
+            criteriaList.add(org.springframework.data.mongodb.core.query.Criteria.where("category")
+                .regex("^" + java.util.regex.Pattern.quote(category) + "$", "i"));
+        }
+
+        if (difficulty != null) {
+            criteriaList.add(org.springframework.data.mongodb.core.query.Criteria.where("difficulty").is(difficulty));
+        }
+
+        if (!criteriaList.isEmpty()) {
+            operations.add(org.springframework.data.mongodb.core.aggregation.Aggregation.match(
+                new org.springframework.data.mongodb.core.query.Criteria().andOperator(criteriaList.toArray(new org.springframework.data.mongodb.core.query.Criteria[0]))
+            ));
+        }
+
+        operations.add(org.springframework.data.mongodb.core.aggregation.Aggregation.sample(limit));
+
+        org.springframework.data.mongodb.core.aggregation.Aggregation aggregation = 
+            org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation(operations);
+
+        return mongoTemplate.aggregate(aggregation, "questions", Question.class).getMappedResults();
+    }
     public List<Question> getAllQuestions() {
        return questionrepository.findAll();
     }

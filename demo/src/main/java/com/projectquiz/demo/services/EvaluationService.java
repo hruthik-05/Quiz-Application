@@ -1,85 +1,106 @@
 package com.projectquiz.demo.services;
+
+import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import  org.springframework.stereotype.Service;
+import org.springframework.stereotype.Service;
 
 import com.projectquiz.demo.models.Question;
-import com.projectquiz.demo.models.UserResponse;
 import com.projectquiz.demo.models.ResultDto;
-import com.projectquiz.demo.services.AnalyticsService;
+import com.projectquiz.demo.models.UserResponse;
+
 @Service
 public class EvaluationService {
+
     @Autowired
-    QuestionService qService;
+    private QuestionService qService;
+
     @Autowired
-    AnalyticsService analyticsService;
-    
-   public ResultDto pointsBasedEvaluation(UserResponse userResponse) {
+    private AnalyticsService analyticsService;
 
-    int totalScore = 0;
-    int correct = 0;
-    int skipped = 0;
+    public ResultDto pointsBasedEvaluation(UserResponse userResponse) {
 
-    Map<String, String> responses = userResponse.getResponses();
+        int totalScore = 0;
+        int correct = 0;
+        int skipped = 0;
 
-    for (Map.Entry<String, String> entry : responses.entrySet()) {
+        Map<String, String> responses = userResponse.getResponses();
+        Map<String, String> correctAnswers = new HashMap<>();
 
-        String questionId = entry.getKey();
-        String userAnswer = entry.getValue();
+        for (Map.Entry<String, String> entry : responses.entrySet()) {
 
-        Question question = qService.getQuestionById(questionId);
+            String questionId = entry.getKey();
+            String userAnswer = entry.getValue();
 
-        if (question == null) {
-            skipped++;
-            continue;
+            Question question = qService.getQuestionById(questionId);
+
+            if (question == null) {
+                skipped++;
+                continue;
+            }
+
+            correctAnswers.put(questionId, question.getAnswer());
+
+            if (userAnswer == null || userAnswer.isBlank()) {
+                skipped++;
+                continue;
+            }
+
+            if (question.getAnswer().equalsIgnoreCase(userAnswer)) {
+                correct++;
+                totalScore += question.getPoints();
+            }
         }
 
-        if (question.getAnswer().equalsIgnoreCase(userAnswer)) {
-            correct++;
-            totalScore += question.getPoints();
+        int wrong = responses.size() - correct - skipped;
+
+        ResultDto result = new ResultDto();
+
+        result.setTotalScore(totalScore);
+        result.setCorrect(correct);
+        result.setSkipped(skipped);
+        result.setWrong(wrong);
+
+        long timeTaken = userResponse.getEndTime()
+                - userResponse.getStartTime();
+
+        result.setTimeTaken(timeTaken);
+        result.setPenalty(0);
+        result.setCorrectAnswers(correctAnswers);
+
+        if (userResponse.getUserId() != null
+                && userResponse.getSubject() != null) {
+
+            analyticsService.updateStats(
+                    userResponse.getUserId(),
+                    userResponse.getSubject(),
+                    result
+            );
         }
+
+        return result;
     }
 
-    ResultDto result = new ResultDto();
-    result.setTotalScore(totalScore);
-    result.setCorrect(correct);
-    result.setSkipped(skipped);
-    result.setWrong(responses.size() - correct - skipped);
-    result.setTimeTaken(userResponse.getEndTime() - userResponse.getStartTime());
-    result.setPenalty(0);
+    public ResultDto timeBasedEval(UserResponse userResponse) {
 
-    if (userResponse.getUserId() != null && userResponse.getSubject() != null) {
-        analyticsService.updateStats(userResponse.getUserId(), userResponse.getSubject(), result);
+        ResultDto result = pointsBasedEvaluation(userResponse);
+
+        long timeTaken = result.getTimeTaken();
+        long timeLimit = userResponse.getTimeLimit();
+
+        int penalty = 0;
+
+        if (timeLimit > 0 && timeTaken > timeLimit) {
+
+            penalty = (int) ((timeTaken - timeLimit) / 10);
+        }
+
+        int finalScore = result.getTotalScore() - penalty;
+
+        result.setPenalty(penalty);
+        result.setTotalScore(Math.max(finalScore, 0));
+
+        return result;
     }
-
-    return result;
 }
-public ResultDto timeBasedEval(UserResponse userResponse) {
-
-
-    ResultDto result = pointsBasedEvaluation(userResponse);
-
-    long timeTaken = result.getTimeTaken();
-    long timeLimit = userResponse.getTimeLimit();
-
-    int penalty = 0;
-
-    if (timeLimit > 0 && timeTaken > timeLimit) {
-
-
-
-
-        penalty = (int) ((timeTaken - timeLimit) / 10);
-    }
-
-
-    int finalScore = result.getTotalScore() - penalty;
-
-    result.setPenalty(penalty);
-    result.setTotalScore(Math.max(finalScore, 0));
-
-    return result;
-}
-}
-

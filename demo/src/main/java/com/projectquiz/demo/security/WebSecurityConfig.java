@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -24,10 +25,19 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import com.projectquiz.demo.security.services.UserDetailsServiceImpl;
 import com.projectquiz.demo.security.services.CustomOAuth2UserService;
 import com.projectquiz.demo.security.oauth2.CustomOAuth2SuccessHandler;
-
+@EnableMethodSecurity(prePostEnabled = true)
 @Configuration
 @EnableWebSecurity
 public class WebSecurityConfig {
+
+  @org.springframework.beans.factory.annotation.Value("${app.frontend.url:http://localhost:5173}")
+  private String frontendUrl;
+
+  @org.springframework.beans.factory.annotation.Value("${app.backend.url:http://localhost:8200}")
+  private String backendUrl;
+
+  @org.springframework.beans.factory.annotation.Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000,http://localhost:5174}")
+  private String allowedOriginsConfig;
 
   @Autowired
   UserDetailsServiceImpl userDetailsService;
@@ -66,10 +76,12 @@ public class WebSecurityConfig {
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http.cors(org.springframework.security.config.Customizer.withDefaults())
-        .csrf(csrf -> csrf
-            .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-            .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
-        )
+        .csrf(csrf -> {
+            org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler requestHandler = new org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler();
+            requestHandler.setCsrfRequestAttributeName(null);
+            csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                .csrfTokenRequestHandler(requestHandler);
+        })
         .addFilterAfter(new CsrfCookieFilter(), UsernamePasswordAuthenticationFilter.class)
         .securityContext(context -> context.securityContextRepository(securityContextRepository()))
         .sessionManagement(session -> session
@@ -83,7 +95,7 @@ public class WebSecurityConfig {
             )
         )
         .headers(headers -> headers
-            .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' http://localhost:8200 http://localhost:5173 http://localhost:3000;"))
+            .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' " + backendUrl + " " + frontendUrl + " http://localhost:3000;"))
             .frameOptions(frame -> frame.deny())
             .contentTypeOptions(org.springframework.security.config.Customizer.withDefaults())
             .referrerPolicy(referrer -> referrer.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
@@ -113,7 +125,7 @@ public class WebSecurityConfig {
   @Bean
   public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
       org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
-      configuration.setAllowedOrigins(java.util.Arrays.asList("http://localhost:5173", "http://localhost:3000", "http://localhost:5174")); 
+      configuration.setAllowedOrigins(java.util.Arrays.asList(allowedOriginsConfig.split(","))); 
       configuration.setAllowedMethods(java.util.Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
       configuration.setAllowedHeaders(java.util.Arrays.asList("*"));
       configuration.setAllowCredentials(true);

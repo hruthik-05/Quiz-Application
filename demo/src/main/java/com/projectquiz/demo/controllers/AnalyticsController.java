@@ -27,6 +27,15 @@ public class AnalyticsController {
 
     @GetMapping("/{userId}")
     public UserPerformanceStats getUserStats(@PathVariable String userId) {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth.getPrincipal().equals("anonymousUser")) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
+        com.projectquiz.demo.security.services.UserDetailsImpl userDetails = (com.projectquiz.demo.security.services.UserDetailsImpl) auth.getPrincipal();
+        boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin && !userDetails.getId().equals(userId)) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "Access denied");
+        }
         return analyticsService.getUserStats(userId);
     }
 

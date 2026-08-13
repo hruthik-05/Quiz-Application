@@ -73,19 +73,42 @@ public class AuthController {
 
   @PostMapping("/signup")
   public ResponseEntity<?> registerUser(@RequestBody SignupRequest signUpRequest) {
+    if (signUpRequest.getUsername() == null || signUpRequest.getUsername().trim().isEmpty() || signUpRequest.getUsername().length() < 3) {
+      return ResponseEntity
+          .badRequest()
+          .body(new MessageResponse("Error: Username must be at least 3 characters!"));
+    }
+    if (signUpRequest.getEmail() == null || !signUpRequest.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+      return ResponseEntity
+          .badRequest()
+          .body(new MessageResponse("Error: Invalid email format!"));
+    }
+    if (signUpRequest.getPassword() == null || signUpRequest.getPassword().length() < 6) {
+      return ResponseEntity
+          .badRequest()
+          .body(new MessageResponse("Error: Password must be at least 6 characters!"));
+    }
+
+    if (signUpRequest.getRoles() != null) {
+      boolean hasAdmin = signUpRequest.getRoles().stream().anyMatch(role -> "admin".equalsIgnoreCase(role.trim()));
+      if (hasAdmin) {
+        return ResponseEntity
+            .badRequest()
+            .body(new MessageResponse("Error: Client-supplied ADMIN role is not allowed!"));
+      }
+    }
+
     if (userRepository.existsByUsername(signUpRequest.getUsername())) {
       return ResponseEntity
           .badRequest()
           .body(new MessageResponse("Error: Username is already taken!"));
     }
-    
 
     if (userRepository.existsByEmail(signUpRequest.getEmail())) {
-        return ResponseEntity
-            .badRequest()
-            .body(new MessageResponse("Error: Email is already in use!"));
+      return ResponseEntity
+          .badRequest()
+          .body(new MessageResponse("Error: Email is already in use!"));
     }
-
 
     User user = new User();
     user.setUsername(signUpRequest.getUsername());
@@ -93,22 +116,8 @@ public class AuthController {
     user.setProvider("local"); 
     user.setPassword(encoder.encode(signUpRequest.getPassword()));
 
-    Set<String> strRoles = signUpRequest.getRoles();
     Set<Role> roles = new HashSet<>();
-
-    if (strRoles == null) {
-      roles.add(Role.USER);
-    } else {
-      strRoles.forEach(role -> {
-        switch (role.toLowerCase()) {
-        case "admin":
-          roles.add(Role.ADMIN);
-          break;
-        default:
-          roles.add(Role.USER);
-        }
-      });
-    }
+    roles.add(Role.USER);
 
     user.setRoles(roles);
     userRepository.save(user);

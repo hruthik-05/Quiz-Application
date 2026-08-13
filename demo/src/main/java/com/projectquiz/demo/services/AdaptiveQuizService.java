@@ -31,13 +31,9 @@ public class AdaptiveQuizService {
         if (stats != null && stats.getSubjectAccuracy() != null) {
             currentAccuracy = stats.getSubjectAccuracy().getOrDefault(subject, 0.0); 
         } else {
-
             currentAccuracy = 50.0; 
         }
-
-
         int easyCount = 0, mediumCount = 0, hardCount = 0;
-
         if (currentAccuracy >= 70.0) {
 
             easyCount = (int) (numberOfQuestions * 0.2);

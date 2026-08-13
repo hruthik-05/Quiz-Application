@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import api from '../services/api';
 
 export default function UserLogin() {
     const [username, setUsername] = useState('');
@@ -8,6 +9,14 @@ export default function UserLogin() {
     const [error, setError] = useState('');
     const { login } = useAuth();
     const navigate = useNavigate();
+
+    const getGoogleOAuth2Url = () => {
+        const base = api.defaults.baseURL || 'http://localhost:8200/api';
+        if (base.endsWith('/api')) {
+            return base.slice(0, -4) + '/oauth2/authorization/google';
+        }
+        return base + '/oauth2/authorization/google';
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -60,7 +69,7 @@ export default function UserLogin() {
                 </div>
 
                 <button
-                    onClick={() => window.location.href = 'http://localhost:8200/oauth2/authorization/google'}
+                    onClick={() => window.location.href = getGoogleOAuth2Url()}
                     className="w-full flex items-center justify-center gap-2 bg-white border border-slate-300 rounded-md py-2 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-sm transition-all duration-200 hover:shadow-md cursor-pointer"
                 >
                     <svg className="w-5 h-5" viewBox="0 0 24 24">
